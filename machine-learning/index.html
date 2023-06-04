@@ -1,0 +1,860 @@
+<html>
+  <head>
+    <title>Tap Strap Web SDK | Machine Learning</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <script src="https://aframe.io/releases/0.5.0/aframe.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r118/three.min.js"></script>
+    <script src="/TapStrap.js"></script>
+
+    <script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script>
+  </head>
+
+  <style>
+    #connect [data-side="left"] button {
+      transform: scaleX(-1);
+    }
+
+    #connect [data-side] button:before {
+      content: "🤚";
+    }
+
+    label {
+      display: block;
+      user-select: none;
+    }
+
+    input[type="number"] {
+      width: 100px;
+    }
+
+    #options[data-type="classification"] > [data-type="classification"] {
+    }
+  </style>
+
+  <body>
+    <h1>
+      Tap Strap | Machine Learning
+    </h1>
+
+    <hr />
+
+    <div id="connect">
+      <h2>Connect</h2>
+
+      <span data-side="left">
+        <button onclick="onClickConnectButton(event)"></button>
+      </span>
+
+      <span data-side="right">
+        <button onclick="onClickConnectButton(event)"></button>
+      </span>
+    </div>
+
+    <hr />
+
+    <div id="sides">
+      <h3>
+        Sides
+      </h3>
+
+      <label data-side="left">
+        Left
+        <input data-options type="checkbox" oninput="onToggleSide(event)" />
+      </label>
+      <label data-side="right">
+        Right
+        <input
+          data-options
+          type="checkbox"
+          oninput="onToggleSide(event)"
+        />
+      </label>
+    </div>
+
+    <hr />
+
+    <div id="options" data-type="classification">
+      <h2>Options</h2>
+
+      <label id="task">
+        Task:
+        <select data-options oninput="onSelectTask(event)">
+          <optgroup label="Task">
+            <option value="classification">Classification</option>
+            <option value="regression">Regression</option>
+          </optgroup>
+        </select>
+      </label>
+
+      <hr />
+
+      <div id="inputs">
+        <h3>
+          Inputs
+        </h3>
+
+        <label data-input="accelerometer">
+          Acceleration
+          <input
+            type="checkbox"
+            checked
+            oninput="onToggleInput(event)"
+            data-options
+          />
+        </label>
+        <label data-input="imuaccelerometer">
+          IMU Acceleration (Tap Strap 2 only)
+          <input type="checkbox" oninput="onToggleInput(event)" data-options />
+        </label>
+        <label data-input="imugyroscope">
+          IMU Gyroscope (Tap Strap 2 only)
+          <input type="checkbox" oninput="onToggleInput(event)" data-options />
+        </label>
+      </div>
+
+      <hr />
+
+      <div id="outputs">
+        <h3>
+          Outputs
+        </h3>
+
+        <label>
+          Number of Outputs:
+          <input
+            type="number"
+            step="1"
+            min="1"
+            value="0"
+            oninput="onInputNumberOfOutputs(event)"
+            data-options
+          />
+        </label>
+
+        <div class="outputs">
+          <template>
+            <div class="output">
+              <input
+                type="string"
+                data-name
+                placeholder="output label"
+                data-options
+              />:
+              <input
+                type="number"
+                value="0"
+                min="0"
+                max="1"
+                step="1"
+                data-value
+              />
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <hr />
+
+      <div id="Sampling">
+        <h3>
+          Sampling
+        </h3>
+
+        <label data-number-of-samples>
+          Number of Samples:
+          <input
+            type="number"
+            min="1"
+            value="1"
+            step="1"
+            oninput="onInputNumberOfSamples(event)"
+            data-options
+          />
+        </label>
+
+        <label data-sampling-period>
+          Sampling Period (ms):
+          <input
+            type="number"
+            value="0"
+            min="0"
+            step="10"
+            data-options
+            oninput="onInputSamplingPeriod(event)"
+          />
+        </label>
+      </div>
+
+      <hr />
+
+      <div id="create">
+        <h3>
+          Create Neural Network
+        </h3>
+
+        <button onclick="onClickCreateNeuralNetwork(event)">
+          Create
+        </button>
+      </div>
+
+      <hr />
+
+      <a-scene
+        style="width: 600px; height: 150px;"
+        vr-mode-ui="enabled: false"
+        embedded
+        device-orientation-permission-ui="enabled: false"
+      >
+        <a-entity
+          position="0 -0.1 8"
+          camera="fov: 20; zoom: 2"
+          look-controls="enabled: false"
+        ></a-entity>
+
+        <a-entity class="boxes"> </a-entity>
+
+        <a-sky color="#ECECEC"></a-sky>
+      </a-scene>
+
+      <script>
+        window.onload = () => {
+          const scene = document.querySelector("a-scene");
+          const boxes = scene.querySelector(".boxes");
+          const colors = ["red", "orange", "yellow", "green", "blue"];
+          for (let index = 0; index < 5; index++) {
+            const box = document.createElement("a-cone");
+            box.setAttribute("color", "blue");
+            box.dataset.finger = TapStrap.TapDataEnumeration[index];
+            box.setAttribute("scale", "0.5, 0.7, 0.5");
+            box.setAttribute("radius-top", 0);
+            box.setAttribute("radius-bottom", 0.5);
+            box.setAttribute("rotation", "90 180 0");
+            const container = document.createElement("a-entity");
+            container.setAttribute("position", `${index - 2}, 0, 0`);
+
+            container.appendChild(box);
+            boxes.appendChild(container);
+          }
+          function updateSceneHandedness(event) {
+            const side = event.target.value;
+            console.log(side);
+            boxes.querySelectorAll("[data-finger]").forEach((box, index) => {
+              const fingerIndex = side == "right" ? index : 4 - index;
+              box.dataset.finger = TapStrap.TapDataEnumeration[fingerIndex];
+            });
+          }
+
+          const lookAtVectors = new Array(5)
+            .fill(1)
+            .map(_ => new THREE.Vector3());
+          const _lookAtVectors = new Array(5)
+            .fill(1)
+            .map(_ => new THREE.Vector3());
+          function onAnimationFrame() {
+            if (
+              tapStraps.right.isConnected &&
+              tapStraps.right.inputMode == "raw"
+            ) {
+              for (let index = 0; index < 5; index++) {
+                const box = boxes.querySelector(
+                  `[data-finger="${TapStrap.TapDataEnumeration[index]}"]`
+                );
+                _lookAtVectors[index].copy(lookAtVectors[index]);
+                _lookAtVectors[index].add(box.object3D.position);
+                box.parentElement.object3D.lookAt(_lookAtVectors[index]);
+              }
+            }
+            requestAnimationFrame(onAnimationFrame);
+          }
+          onAnimationFrame();
+
+          tapStraps.right.addEventListener("accelerometer", event => {
+            const { sensors } = event.message;
+            sensors.forEach(([x, y, z], index) => {
+              lookAtVectors[index].set(x, y, z);
+            });
+          });
+        };
+      </script>
+
+      <hr />
+
+      <div id="addingData">
+        <h3>
+          Add Data
+        </h3>
+
+        <button data-add disabled onclick="onClickAddData(event)">
+          Add Data
+        </button>
+
+        <label>
+          Continuous:
+          <input
+            data-add
+            disabled
+            type="checkbox"
+            oninput="onToggleAddDataContinuously(event)"
+          />
+        </label>
+      </div>
+
+      <hr />
+
+      <div id="train">
+        <h3>
+          Train Neural Network
+        </h3>
+
+        <button data-train disabled onclick="onClickTrain(event)">
+          Train
+        </button>
+      </div>
+
+      <hr />
+
+      <div id="results">
+        <h3>
+          Classify & Predict
+        </h3>
+
+        <button onclick="onClickTest()" disabled data-test>Test</button>
+        <label>
+          Test Continuously
+          <input
+            data-test
+            type="checkbox"
+            disabled
+            onclick="onToggleTestContinuously(event)"
+          />
+        </label>
+
+        <div>
+          <h4>
+            Results
+          </h4>
+
+          <div data-results></div>
+        </div>
+      </div>
+
+      <hr />
+
+      <div id="save">
+        <h3>
+          Save
+        </h3>
+
+        <button disabled>
+          Save Data
+        </button>
+
+        <button disabled>
+          Save Model
+        </button>
+      </div>
+
+      <hr />
+
+      <div id="load">
+        <h3>
+          Load
+        </h3>
+
+        <button disabled>
+          Load Data
+        </button>
+
+        <button>
+          Load Model
+        </button>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    if (location.protocol != "https:") {
+      location.replace(
+        `https:${location.href.substring(location.protocol.length)}`
+      );
+    }
+
+    const tapStraps = {
+      left: new TapStrap(),
+      right: new TapStrap()
+    };
+    const _sides = ["left", "right"];
+
+    function onClickConnectButton(event) {
+      const { side } = event.target.closest("[data-side]").dataset;
+      tapStraps[side].connect().then(() => {
+        event.target.remove();
+      });
+    }
+
+    const sides = [];
+    function onToggleSide(event) {
+      const { side } = event.target.closest("[data-side]").dataset;
+      if (event.target.checked) {
+        if (!sides.includes(side)) {
+          sides.push(side);
+        }
+      } else {
+        if (sides.includes(side)) {
+          sides.splice(sides.indexOf(side), 1);
+        }
+      }
+      console.log("updated sides", sides);
+    }
+
+    let task = "classification";
+    function onSelectTask(event) {
+      task = event.target.value;
+      console.log(`changing task to ${task}`);
+      document
+        .querySelectorAll(`#outputs .outputs .output input`)
+        .forEach(input => {
+          formatOutputs();
+        });
+    }
+
+    function formatOutputs() {
+      const outputElements = Array.from(
+        document.querySelectorAll("#outputs .outputs .output")
+      );
+      outputElements.forEach(outputElement => {
+        const value = outputElement.querySelector("[data-value]");
+        if (task == "classification") {
+          value.setAttribute("value", 0);
+          value.setAttribute("min", 0);
+          value.setAttribute("max", 1);
+          value.setAttribute("step", 1);
+        } else {
+          value.removeAttribute("min");
+          value.removeAttribute("max");
+          value.removeAttribute("step");
+        }
+      });
+    }
+
+    let outputs;
+    function getOutputs() {
+      if (outputs) return outputs;
+
+      const outputElements = Array.from(
+        document.querySelectorAll("#outputs .outputs .output")
+      );
+
+      const _outputs = outputElements.map(
+        outputElement => outputElement.querySelector("[data-name]").value
+      );
+
+      if (_outputs.length) {
+        outputs = _outputs;
+      }
+      return _outputs;
+    }
+    function getOutputValues() {
+      let outputValues = Array.from(
+        document.querySelectorAll("#outputs .outputs .output [data-value]")
+      ).map(input => {
+        let value = Number(input.value);
+        return value;
+      });
+
+      if (task == "classification") {
+        outputValues = outputValues.reduce(
+          (_outputValues, outputValue, index) => {
+            if (outputValue) {
+              _outputValues.push(outputs[index]);
+            }
+            return _outputValues;
+          },
+          []
+        );
+      } else {
+        outputValues = outputValues.reduce(
+          (_outputValues, outputValue, index) => {
+            _outputValues[outputs[index]] = outputValue;
+            return _outputValues;
+          },
+          {}
+        );
+      }
+
+      return outputValues;
+    }
+
+    let inputs = [];
+    function onToggleInput(event) {
+      const { input } = event.target.closest("[data-input]").dataset;
+      if (event.target.checked) {
+        if (!inputs.includes(input)) {
+          console.log(`adding input ${input}`);
+
+          inputs.push(input);
+        }
+      } else {
+        if (inputs.includes(input)) {
+          console.log(`removing input ${input}`);
+
+          inputs.splice(inputs.indexOf(input), 1);
+        }
+      }
+      console.log("current inputs:", inputs);
+    }
+    document
+      .querySelectorAll("[checked]")
+      .forEach(input => input.dispatchEvent(new Event("input")));
+
+    let numberOfOutputs = 0;
+    function onInputNumberOfOutputs(event) {
+      numberOfOutputs = Number(event.target.value);
+      console.log(`changed number of outputs to ${numberOfOutputs}`);
+      const outputElements = Array.from(
+        document.querySelectorAll(`#outputs .output`)
+      );
+      if (outputElements.length !== numberOfOutputs) {
+        if (outputElements.length > numberOfOutputs) {
+          outputElements
+            .slice(numberOfOutputs)
+            .forEach(output => output.remove());
+        } else {
+          for (
+            let index = 0;
+            index < numberOfOutputs - outputElements.length;
+            index++
+          ) {
+            const output = document
+              .querySelector("#outputs .outputs template")
+              .content.cloneNode(true)
+              .querySelector(".output");
+            document.querySelector("#outputs .outputs").appendChild(output);
+            const name = output.querySelector("[data-name]");
+            name.value = `input${index + outputElements.length}`;
+          }
+          formatOutputs();
+        }
+      }
+    }
+
+    let numberOfSamples = 1;
+    let samplingPeriod = 0;
+    function onInputNumberOfSamples(event) {
+      numberOfSamples = Number(event.target.value);
+      console.log(`changed number of samples to ${numberOfSamples}`);
+
+      samplingPeriod = (numberOfSamples - 1) * 10; // ms
+      document.querySelector(
+        "[data-sampling-period] input"
+      ).value = samplingPeriod;
+      console.log(`changed sampling period to ${samplingPeriod}`);
+    }
+
+    function onInputSamplingPeriod(event) {
+      samplingPeriod = Number(event.target.value);
+      console.log(`changed sampling period to ${samplingPeriod}`);
+
+      numberOfSamples = samplingPeriod / 10 + 1;
+      document.querySelector(
+        "[data-number-of-samples] input"
+      ).value = numberOfSamples;
+      console.log(`changed number of samples to ${numberOfSamples}`);
+    }
+    document
+      .querySelector("#sampling [data-number-of-samples] input")
+      .dispatchEvent(new Event("input"));
+
+    /* global ml5 */
+    let neuralNetwork;
+    function onClickCreateNeuralNetwork(event) {
+      const outputs = getOutputs();
+      if (
+        inputs.length &&
+        outputs.length &&
+        sides.length &&
+        (true || sides.every(side => tapStraps[side].isConnected))
+      ) {
+        sides.forEach(side => {
+          tapStraps[side].inputMode = "raw";
+        });
+
+        neuralNetwork = ml5.neuralNetwork({
+          task,
+
+          inputs: getNumberOfInputs(),
+          outputs,
+
+          debug: true,
+        });
+        
+        event.target.disabled = true;
+        document
+          .querySelectorAll("[data-options]")
+          .forEach(input => (input.disabled = true));
+
+        document
+          .querySelectorAll("[data-add]")
+          .forEach(input => (input.disabled = false));
+        document
+          .querySelectorAll("[data-train]")
+          .forEach(input => (input.disabled = false));
+
+        console.log("created neural network", neuralNetwork);
+      }
+    }
+
+    Array.prototype.includesAny = function(...array) {
+      return array.some(value => this.includes(value));
+    };
+
+    let inputCounts = {
+      acceleration: 3 * 5,
+      imuacceleration: 3 * 1,
+      imugyroscope: 3 * 1
+    };
+    function getNumberOfInputs() {
+      let numberOfInputs = 0;
+      for (const input in inputCounts) {
+        if (inputs.includes(input)) {
+          numberOfInputs += inputCounts[input];
+        }
+      }
+      numberOfInputs *= numberOfSamples;
+      numberOfInputs *= sides.length;
+      return numberOfInputs;
+    }
+
+    function includesAny(a, ...b) {
+      return b.some(_ => a.includes(_));
+    }
+
+    let isAddingData = false;
+    function onClickAddData(event) {
+      if (!isAddingData) {
+        addData();
+      }
+    }
+
+    let addDataButton = document.querySelector("[data-add]");
+    function addData() {
+      if (!isAddingData) {
+        //console.log("Adding data");
+        isAddingData = true;
+        addDataButton.disabled = true;
+        addDataButton.innerText = "collecting data";
+        collectData(data => {
+          const outputs = getOutputValues();
+          data.forEach((value, index) => {
+            if (!value) {
+              data[index] = 0.001 * Math.random();
+            }
+          });
+          console.log("got data");
+
+          neuralNetwork.addData(data, outputs);
+          isAddingData = false;
+          if (addDataContinuously) {
+            addData();
+          } else {
+            addDataButton.innerText = "Add Data";
+            addDataButton.disabled = false;
+          }
+        });
+      }
+    }
+
+    let addDataContinuously = false;
+    function onToggleAddDataContinuously(event) {
+      addDataContinuously = event.target.checked;
+    }
+
+    function collectData(callback) {
+      const datum = {
+        left: [],
+        right: []
+      };
+
+      const checkData = data => {
+        if (inputs.every(input => input in data)) {
+          data.isComplete = true;
+        }
+
+        if (
+          sides.every(
+            side =>
+              datum[side].filter(data => data.isComplete).length >=
+              numberOfSamples
+          )
+        ) {
+          onCollectedData();
+          return true;
+        }
+      };
+
+      const onCollectedData = () => {
+        sides.forEach(side => {
+          datum[side] = datum[side]
+            .filter(data => data.isComplete)
+            .sort((a, b) => a.timestamp - b.timestamp);
+        });
+
+        const data = sides.flatMap(side =>
+          datum[side].slice(0, numberOfSamples).flatMap(values => inputs.flatMap(input => values[input]))
+        );
+        callback(data);
+        sides.forEach(side => {
+          for (const input in eventListeners[side]) {
+            tapStraps[side].removeEventListener(
+              input,
+              eventListeners[side][input]
+            );
+          }
+        });
+      };
+
+      const eventListeners = {};
+      sides.forEach(side => {
+        eventListeners[side] = {};
+        const eventsToListenTo = [];
+        if (inputs.includes("accelerometer")) {
+          eventsToListenTo.push("accelerometer");
+        }
+        if (inputs.includesAny("imuaccelerometer", "imugyroscope")) {
+          eventsToListenTo.push("imu");
+        }
+        eventsToListenTo.forEach(input => {
+          eventListeners[side][input] = event => {
+            const { timestamp, sensors } = event.message;
+
+            const data = datum[side].find(
+              data => data.timestamp == timestamp
+            ) || { timestamp };
+            if (!datum[side].includes(data)) {
+              datum[side].push(data);
+            }
+
+            data[input] = sensors.flat();
+            return checkData(data, side);
+          };
+          tapStraps[side].addEventListener(input, eventListeners[side][input]);
+        });
+      });
+    }
+
+    let overlapMinimum = 250;
+    let overlaps = 1;
+    let overlap = 250;
+    function onClickTrain(event) {
+      if (neuralNetwork) {
+        neuralNetwork.normalizeData();
+        neuralNetwork.train(
+          {
+            
+          },
+          () => {
+            console.log("done training");
+            event.target.disabled = true;
+            document
+              .querySelectorAll("[data-test]")
+              .forEach(input => (input.disabled = false));
+            /*
+                test();
+                if (samplingPeriod >= 2 * overlapMinimum) {
+                  overlaps = Math.floor(samplingPeriod / overlapMinimum);
+                  overlap = Math.floor(samplingPeriod / overlaps);
+                  for (let index = 0; index < overlaps; index++) {
+                    setTimeout(() => {
+                      test();
+                    }, overlap);
+                  }
+                }
+                */
+          }
+        );
+      }
+    }
+
+    function onClickTest() {
+      test();
+    }
+
+    let testContinuously = false;
+    function onToggleTestContinuously(event) {
+      testContinuously = event.target.checked;
+    }
+
+    function test() {
+      if (neuralNetwork) {
+        collectData(data => {
+          //console.log("collected data", data);
+          if (task == "classification") {
+            neuralNetwork.classify(data, handleResults);
+          } else {
+            neuralNetwork.predict(data, handleResults);
+          }
+        });
+      }
+    }
+    function handleResults(error, results) {
+      if (error) {
+        console.error(error);
+      } else {
+        //console.log(results);
+        const resultsContainer = document.querySelector("[data-results]");
+        resultsContainer.innerHTML = "";
+        results.forEach(result => {
+          const { label } = result;
+          let string = `label: ${label}, `;
+          if (task == "classification") {
+            string += `value: ${result[label].toFixed(
+              3
+            )}, confidence: ${result.confidence.toFixed(3)},`;
+          } else {
+            const { value } = result;
+            string += `value: ${value.toFixed(3)}`;
+          }
+          resultsContainer.innerText += `${string}\n`;
+        });
+
+        if (task == "classification") {
+          results.sort((a, b) => b.confidence - a.confidence);
+          resultsContainer.innerHTML += `<h1 style="font-size: 92px">${results[0].label}</h1>`;
+        }
+
+        if (testContinuously) {
+          test();
+        }
+      }
+    }
+
+    function onClickSaveData() {
+      if (neuralNetwork) {
+        console.log("saving data");
+        neuralNetwork.saveData();
+      }
+    }
+    function onClickSaveModel() {
+      if (neuralNetwork) {
+        console.log("saving model");
+        neuralNetwork.save();
+      }
+    }
+
+    function onClickLoadData() {
+      if (neuralNetwork) {
+        console.log("loading data");
+        // FILL
+        //neuralNetwork.loadData();
+      }
+    }
+    function onClickLoadModel() {
+      if (neuralNetwork) {
+        console.log("loading model");
+        // FILL
+        //neuralNetwork.load();
+      }
+    }
+  </script>
+</html>
