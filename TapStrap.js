@@ -29,23 +29,26 @@ class TapStrap {
   async connect() {
     if (!this.isConnected) {
       console.log("requesting device...");
+      const filters = [
+        {
+          services: [
+            ...Object.values(TapStrap.services).map((_) => _.uuid),
+            // "battery_service",
+            // "device_information",
+          ],
+          //namePrefix: "Tap",
+        },
+      ];
+      console.log("filters", filters);
       this.device = await navigator.bluetooth.requestDevice({
-        filters: [
-          {
-            services: [
-              ...Object.values(TapStrap.services).map((_) => _.uuid),
-              "battery_service",
-              "device_information",
-            ],
-            optionalServices: [
-              // https://googlechrome.github.io/samples/web-bluetooth/battery-level.html
-              "battery_service",
+        _acceptAllDevices: true,
+        filters,
+        optionalServices: [
+          // https://googlechrome.github.io/samples/web-bluetooth/battery-level.html
+          "battery_service",
 
-              // https://googlechrome.github.io/samples/web-bluetooth/device-information-characteristics.html
-              "device_information",
-            ],
-            namePrefix: "Tap_",
-          },
+          // https://googlechrome.github.io/samples/web-bluetooth/device-information-characteristics.html
+          "device_information",
         ],
       });
       console.log("obtained device", this.device);
@@ -451,9 +454,9 @@ class TapStrap {
   async vibrate(sequence) {
     sequence = sequence
       .slice(0, 18)
-      .map((value) => Math.max(0, Math.min(255, Math.floor(value/10))));
+      .map((value) => Math.max(0, Math.min(255, Math.floor(value / 10))));
     if (sequence.length % 2 == 0) {
-      sequence.pop()
+      sequence.pop();
     }
     await this.services.data.characteristics.uiCommand.characteristic.writeValue(
       TapStrap.arrayToDataView([0x0, 0x2, ...sequence])
@@ -461,7 +464,8 @@ class TapStrap {
   }
 
   async getBatteryLevel() {
-    const value = this.services.batteryLevel.characteristics.batteryLevel.readValue()
+    const value =
+      this.services.batteryLevel.characteristics.batteryLevel.readValue();
     return value.getUint8(0);
   }
 }
@@ -528,6 +532,7 @@ Object.assign(TapStrap, {
       uuid: "0000180a-0000-1000-8000-00805f9b34fb",
       characteristics: {}
     },
+    
     firmware_update: {
       uuid: "0000fe59-0000-1000-8000-00805f9b34fb",
       characteristics: {}

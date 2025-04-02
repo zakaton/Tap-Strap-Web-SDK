@@ -7,7 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r118/three.min.js"></script>
     <script src="/TapStrap.js"></script>
 
-    <script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script>
+    <script src="https://unpkg.com/ml5@1/dist/ml5.js"></script>
   </head>
 
   <style>
@@ -28,14 +28,14 @@
       width: 100px;
     }
 
-    #options[data-type="classification"] > [data-type="classification"] {
+    #options[data-task="classification"] [data-task="regression"],
+    #options[data-task="regression"] [data-task="classification"] {
+      display: none;
     }
   </style>
 
   <body>
-    <h1>
-      Tap Strap | Machine Learning
-    </h1>
+    <h1>Tap Strap | Machine Learning</h1>
 
     <hr />
 
@@ -54,9 +54,7 @@
     <hr />
 
     <div id="sides">
-      <h3>
-        Sides
-      </h3>
+      <h3>Sides</h3>
 
       <label data-side="left">
         Left
@@ -64,17 +62,13 @@
       </label>
       <label data-side="right">
         Right
-        <input
-          data-options
-          type="checkbox"
-          oninput="onToggleSide(event)"
-        />
+        <input data-options type="checkbox" oninput="onToggleSide(event)" />
       </label>
     </div>
 
     <hr />
 
-    <div id="options" data-type="classification">
+    <div id="options" data-task="classification">
       <h2>Options</h2>
 
       <label id="task">
@@ -90,9 +84,7 @@
       <hr />
 
       <div id="inputs">
-        <h3>
-          Inputs
-        </h3>
+        <h3>Inputs</h3>
 
         <label data-input="accelerometer">
           Acceleration
@@ -116,9 +108,7 @@
       <hr />
 
       <div id="outputs">
-        <h3>
-          Outputs
-        </h3>
+        <h3>Outputs</h3>
 
         <label>
           Number of Outputs:
@@ -148,7 +138,9 @@
                 max="1"
                 step="1"
                 data-value
+                data-task="regression"
               />
+              <input type="radio" name="output" data-value data-task="classification" />
             </div>
           </template>
         </div>
@@ -157,9 +149,7 @@
       <hr />
 
       <div id="Sampling">
-        <h3>
-          Sampling
-        </h3>
+        <h3>Sampling</h3>
 
         <label data-number-of-samples>
           Number of Samples:
@@ -189,19 +179,15 @@
       <hr />
 
       <div id="create">
-        <h3>
-          Create Neural Network
-        </h3>
+        <h3>Create Neural Network</h3>
 
-        <button onclick="onClickCreateNeuralNetwork(event)">
-          Create
-        </button>
+        <button onclick="onClickCreateNeuralNetwork(event)">Create</button>
       </div>
 
       <hr />
 
       <a-scene
-        style="width: 600px; height: 150px;"
+        style="width: 600px; height: 150px"
         vr-mode-ui="enabled: false"
         embedded
         device-orientation-permission-ui="enabled: false"
@@ -247,10 +233,10 @@
 
           const lookAtVectors = new Array(5)
             .fill(1)
-            .map(_ => new THREE.Vector3());
+            .map((_) => new THREE.Vector3());
           const _lookAtVectors = new Array(5)
             .fill(1)
-            .map(_ => new THREE.Vector3());
+            .map((_) => new THREE.Vector3());
           function onAnimationFrame() {
             if (
               tapStraps.right.isConnected &&
@@ -269,7 +255,7 @@
           }
           onAnimationFrame();
 
-          tapStraps.right.addEventListener("accelerometer", event => {
+          tapStraps.right.addEventListener("accelerometer", (event) => {
             const { sensors } = event.message;
             sensors.forEach(([x, y, z], index) => {
               lookAtVectors[index].set(x, y, z);
@@ -281,9 +267,7 @@
       <hr />
 
       <div id="addingData">
-        <h3>
-          Add Data
-        </h3>
+        <h3>Add Data</h3>
 
         <button data-add disabled onclick="onClickAddData(event)">
           Add Data
@@ -303,21 +287,15 @@
       <hr />
 
       <div id="train">
-        <h3>
-          Train Neural Network
-        </h3>
+        <h3>Train Neural Network</h3>
 
-        <button data-train disabled onclick="onClickTrain(event)">
-          Train
-        </button>
+        <button data-train disabled onclick="onClickTrain(event)">Train</button>
       </div>
 
       <hr />
 
       <div id="results">
-        <h3>
-          Classify & Predict
-        </h3>
+        <h3>Classify & Predict</h3>
 
         <button onclick="onClickTest()" disabled data-test>Test</button>
         <label>
@@ -331,9 +309,7 @@
         </label>
 
         <div>
-          <h4>
-            Results
-          </h4>
+          <h4>Results</h4>
 
           <div data-results></div>
         </div>
@@ -342,33 +318,21 @@
       <hr />
 
       <div id="save">
-        <h3>
-          Save
-        </h3>
+        <h3>Save</h3>
 
-        <button disabled>
-          Save Data
-        </button>
+        <button disabled>Save Data</button>
 
-        <button disabled>
-          Save Model
-        </button>
+        <button disabled>Save Model</button>
       </div>
 
       <hr />
 
       <div id="load">
-        <h3>
-          Load
-        </h3>
+        <h3>Load</h3>
 
-        <button disabled>
-          Load Data
-        </button>
+        <button disabled>Load Data</button>
 
-        <button>
-          Load Model
-        </button>
+        <button>Load Model</button>
       </div>
     </div>
   </body>
@@ -382,7 +346,7 @@
 
     const tapStraps = {
       left: new TapStrap(),
-      right: new TapStrap()
+      right: new TapStrap(),
     };
     const _sides = ["left", "right"];
 
@@ -409,22 +373,24 @@
     }
 
     let task = "classification";
+    const optionsContainer = document.getElementById("options");
     function onSelectTask(event) {
       task = event.target.value;
       console.log(`changing task to ${task}`);
       document
         .querySelectorAll(`#outputs .outputs .output input`)
-        .forEach(input => {
+        .forEach((input) => {
           formatOutputs();
         });
+      optionsContainer.dataset.task = task;
     }
 
     function formatOutputs() {
       const outputElements = Array.from(
         document.querySelectorAll("#outputs .outputs .output")
       );
-      outputElements.forEach(outputElement => {
-        const value = outputElement.querySelector("[data-value]");
+      outputElements.forEach((outputElement) => {
+        const value = outputElement.querySelector(`[data-value][data-task="regression"]`);
         if (task == "classification") {
           value.setAttribute("value", 0);
           value.setAttribute("min", 0);
@@ -447,7 +413,7 @@
       );
 
       const _outputs = outputElements.map(
-        outputElement => outputElement.querySelector("[data-name]").value
+        (outputElement) => outputElement.querySelector("[data-name]").value
       );
 
       if (_outputs.length) {
@@ -457,9 +423,9 @@
     }
     function getOutputValues() {
       let outputValues = Array.from(
-        document.querySelectorAll("#outputs .outputs .output [data-value]")
-      ).map(input => {
-        let value = Number(input.value);
+        document.querySelectorAll(`#outputs .outputs .output [data-value][data-task="${task}"]`)
+      ).map((input, index) => {
+        let value = input.type == "radio" ? Number(input.checked) : Number(input.value);
         return value;
       });
 
@@ -506,7 +472,7 @@
     }
     document
       .querySelectorAll("[checked]")
-      .forEach(input => input.dispatchEvent(new Event("input")));
+      .forEach((input) => input.dispatchEvent(new Event("input")));
 
     let numberOfOutputs = 0;
     function onInputNumberOfOutputs(event) {
@@ -519,7 +485,7 @@
         if (outputElements.length > numberOfOutputs) {
           outputElements
             .slice(numberOfOutputs)
-            .forEach(output => output.remove());
+            .forEach((output) => output.remove());
         } else {
           for (
             let index = 0;
@@ -546,9 +512,8 @@
       console.log(`changed number of samples to ${numberOfSamples}`);
 
       samplingPeriod = (numberOfSamples - 1) * 10; // ms
-      document.querySelector(
-        "[data-sampling-period] input"
-      ).value = samplingPeriod;
+      document.querySelector("[data-sampling-period] input").value =
+        samplingPeriod;
       console.log(`changed sampling period to ${samplingPeriod}`);
     }
 
@@ -557,9 +522,8 @@
       console.log(`changed sampling period to ${samplingPeriod}`);
 
       numberOfSamples = samplingPeriod / 10 + 1;
-      document.querySelector(
-        "[data-number-of-samples] input"
-      ).value = numberOfSamples;
+      document.querySelector("[data-number-of-samples] input").value =
+        numberOfSamples;
       console.log(`changed number of samples to ${numberOfSamples}`);
     }
     document
@@ -568,51 +532,50 @@
 
     /* global ml5 */
     let neuralNetwork;
+    ml5.setBackend("webgl");
     function onClickCreateNeuralNetwork(event) {
       const outputs = getOutputs();
       if (
         inputs.length &&
         outputs.length &&
         sides.length &&
-        (true || sides.every(side => tapStraps[side].isConnected))
+        (true || sides.every((side) => tapStraps[side].isConnected))
       ) {
-        sides.forEach(side => {
+        sides.forEach((side) => {
           tapStraps[side].inputMode = "raw";
         });
 
         neuralNetwork = ml5.neuralNetwork({
           task,
-
           inputs: getNumberOfInputs(),
           outputs,
-
           debug: true,
         });
-        
+
         event.target.disabled = true;
         document
           .querySelectorAll("[data-options]")
-          .forEach(input => (input.disabled = true));
+          .forEach((input) => (input.disabled = true));
 
         document
           .querySelectorAll("[data-add]")
-          .forEach(input => (input.disabled = false));
+          .forEach((input) => (input.disabled = false));
         document
           .querySelectorAll("[data-train]")
-          .forEach(input => (input.disabled = false));
+          .forEach((input) => (input.disabled = false));
 
         console.log("created neural network", neuralNetwork);
       }
     }
 
-    Array.prototype.includesAny = function(...array) {
-      return array.some(value => this.includes(value));
+    Array.prototype.includesAny = function (...array) {
+      return array.some((value) => this.includes(value));
     };
 
     let inputCounts = {
       acceleration: 3 * 5,
       imuacceleration: 3 * 1,
-      imugyroscope: 3 * 1
+      imugyroscope: 3 * 1,
     };
     function getNumberOfInputs() {
       let numberOfInputs = 0;
@@ -627,7 +590,7 @@
     }
 
     function includesAny(a, ...b) {
-      return b.some(_ => a.includes(_));
+      return b.some((_) => a.includes(_));
     }
 
     let isAddingData = false;
@@ -644,7 +607,7 @@
         isAddingData = true;
         addDataButton.disabled = true;
         addDataButton.innerText = "collecting data";
-        collectData(data => {
+        collectData((data) => {
           const outputs = getOutputValues();
           data.forEach((value, index) => {
             if (!value) {
@@ -673,18 +636,18 @@
     function collectData(callback) {
       const datum = {
         left: [],
-        right: []
+        right: [],
       };
 
-      const checkData = data => {
-        if (inputs.every(input => input in data)) {
+      const checkData = (data) => {
+        if (inputs.every((input) => input in data)) {
           data.isComplete = true;
         }
 
         if (
           sides.every(
-            side =>
-              datum[side].filter(data => data.isComplete).length >=
+            (side) =>
+              datum[side].filter((data) => data.isComplete).length >=
               numberOfSamples
           )
         ) {
@@ -694,17 +657,19 @@
       };
 
       const onCollectedData = () => {
-        sides.forEach(side => {
+        sides.forEach((side) => {
           datum[side] = datum[side]
-            .filter(data => data.isComplete)
+            .filter((data) => data.isComplete)
             .sort((a, b) => a.timestamp - b.timestamp);
         });
 
-        const data = sides.flatMap(side =>
-          datum[side].slice(0, numberOfSamples).flatMap(values => inputs.flatMap(input => values[input]))
+        const data = sides.flatMap((side) =>
+          datum[side]
+            .slice(0, numberOfSamples)
+            .flatMap((values) => inputs.flatMap((input) => values[input]))
         );
         callback(data);
-        sides.forEach(side => {
+        sides.forEach((side) => {
           for (const input in eventListeners[side]) {
             tapStraps[side].removeEventListener(
               input,
@@ -715,7 +680,7 @@
       };
 
       const eventListeners = {};
-      sides.forEach(side => {
+      sides.forEach((side) => {
         eventListeners[side] = {};
         const eventsToListenTo = [];
         if (inputs.includes("accelerometer")) {
@@ -724,12 +689,12 @@
         if (inputs.includesAny("imuaccelerometer", "imugyroscope")) {
           eventsToListenTo.push("imu");
         }
-        eventsToListenTo.forEach(input => {
-          eventListeners[side][input] = event => {
+        eventsToListenTo.forEach((input) => {
+          eventListeners[side][input] = (event) => {
             const { timestamp, sensors } = event.message;
 
             const data = datum[side].find(
-              data => data.timestamp == timestamp
+              (data) => data.timestamp == timestamp
             ) || { timestamp };
             if (!datum[side].includes(data)) {
               datum[side].push(data);
@@ -749,17 +714,13 @@
     function onClickTrain(event) {
       if (neuralNetwork) {
         neuralNetwork.normalizeData();
-        neuralNetwork.train(
-          {
-            
-          },
-          () => {
-            console.log("done training");
-            event.target.disabled = true;
-            document
-              .querySelectorAll("[data-test]")
-              .forEach(input => (input.disabled = false));
-            /*
+        neuralNetwork.train({}, () => {
+          console.log("done training");
+          event.target.disabled = true;
+          document
+            .querySelectorAll("[data-test]")
+            .forEach((input) => (input.disabled = false));
+          /*
                 test();
                 if (samplingPeriod >= 2 * overlapMinimum) {
                   overlaps = Math.floor(samplingPeriod / overlapMinimum);
@@ -771,8 +732,7 @@
                   }
                 }
                 */
-          }
-        );
+        });
       }
     }
 
@@ -787,7 +747,7 @@
 
     function test() {
       if (neuralNetwork) {
-        collectData(data => {
+        collectData((data) => {
           //console.log("collected data", data);
           if (task == "classification") {
             neuralNetwork.classify(data, handleResults);
@@ -797,14 +757,14 @@
         });
       }
     }
-    function handleResults(error, results) {
-      if (error) {
+    function handleResults(results) {
+      if (false) {
         console.error(error);
       } else {
         //console.log(results);
         const resultsContainer = document.querySelector("[data-results]");
         resultsContainer.innerHTML = "";
-        results.forEach(result => {
+        results.forEach((result) => {
           const { label } = result;
           let string = `label: ${label}, `;
           if (task == "classification") {
