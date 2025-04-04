@@ -7,6 +7,10 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r118/three.min.js"></script>
     <script src="/TapStrap.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css"
+    />
   </head>
 
   <style>
@@ -35,13 +39,33 @@
     #ui[data-hand="left"] #taps {
       flex-direction: row-reverse;
     }
+    .github-fork-ribbon:before {
+      background-color: #333;
+    }
+    footer {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      text-align: center;
+      padding-bottom: 1rem;
+      z-index: -1;
+    }
   </style>
 
   <body>
+    <a
+      class="github-fork-ribbon"
+      href="https://github.com/zakaton/Tap-Strap-Web-SDK"
+      data-ribbon="View on GitHub"
+      title="View on GitHub"
+      target="_blank"
+      >View on GitHub</a
+    >
     <div id="ui" data-hand="right">
       <h1>
         Tap Strap Web SDK
       </h1>
+    
 
       <button id="connect">
         Connect
@@ -373,6 +397,16 @@
               }
             }
           </script>
+        </div>
+        
+        <div id="demos">
+          <h2>
+            Demos
+          </h2>
+
+          <ul>
+            <li><a href="/machine-learning">machine learning demo</a></li>
+          </ul>
         </div>
       </div>
     </div>
